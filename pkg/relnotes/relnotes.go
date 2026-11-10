@@ -649,10 +649,19 @@ func classify(c commit) Kind {
 
 	s := strings.ToLower(c.Subject)
 
-	// A declared type prefix is the author saying what the commit is, so it is
-	// read before the substring rules below. In that order "docs: fix the mermaid
-	// syntax" is a fix and "docs: mark Phase 5 — all Scale & Performance items
-	// shipped" is a performance change, which is not what either author wrote.
+	// A CVE or a vulnerability is Security whatever the prefix says. The
+	// Security section is the one people scan to decide whether to upgrade
+	// today, so "fix(auth): reject forged tokens (CVE-2026-1234)" and
+	// "chore(deps): bump x/crypto for CVE-2026-1234" must still be filed there.
+	if strings.Contains(s, "cve-") || strings.Contains(s, "vulnerabilit") {
+		return KindSecurity
+	}
+
+	// Otherwise a declared type prefix is the author saying what the commit is,
+	// so it is read before the substring rules below. With the substring rules
+	// first, "docs: fix the mermaid syntax" was a fix and "docs: mark Phase 5,
+	// all Scale & Performance items shipped" was a performance change, which is
+	// not what either author wrote.
 	switch typePrefix(s) {
 	case "security":
 		return KindSecurity
@@ -689,13 +698,15 @@ func classify(c commit) Kind {
 
 // typePrefix reports the conventional-commit type of a lowercased subject — the
 // text before its first ":" or "(" — or "" when the subject is not shaped that
-// way, as in "Correct the DCO entry".
+// way, as in "Correct the DCO entry". A breaking-change marker ("fix!:") is
+// dropped, since breaking is recorded separately by isBreaking and "docs!: fix
+// the examples" is still documentation.
 func typePrefix(s string) string {
 	i := strings.IndexAny(s, ":(")
 	if i < 0 {
 		return ""
 	}
-	return strings.TrimSpace(s[:i])
+	return strings.TrimSuffix(strings.TrimSpace(s[:i]), "!")
 }
 
 func isBreaking(c commit) bool {

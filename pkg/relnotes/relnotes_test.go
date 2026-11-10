@@ -596,6 +596,16 @@ func TestKindClassification(t *testing.T) {
 		"GRVX-1204: make charter §6 executable": KindFeature,
 		"add a thing that mentions a CVE-2026":  KindSecurity,
 
+		// A CVE outranks the declared prefix: these are what an upgrader is
+		// scanning the Security section for.
+		"fix(auth): reject forged tokens (CVE-2026-1234)":   KindSecurity,
+		"chore(deps): bump x/crypto for CVE-2026-1234":      KindSecurity,
+		"fix: close a path-traversal vulnerability in List": KindSecurity,
+
+		// A breaking-change marker does not hide the type.
+		"docs!: fix the examples for the v2 API": KindDocs,
+		"fix!: reject tokens with no expiry":     KindFix,
+
 		// Real subjects from this repository's history that the heuristics got
 		// wrong (issue #46). In each of them a word in the text beat the type
 		// prefix the author declared.
